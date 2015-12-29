@@ -8,18 +8,13 @@
 #include "naive_bayes.h"
 using namespace std;
 
-/*
- * function: read_data
- * data_file_name: 保存数据的文件名
- * header: 数据的属性名
- * examples: 每行保存一个样例
- *
- */
-bool read_data(
-		const string& data_file_name,
-		vector<string>& header,
-		vector<vector<string> >& examples)
+bool playTennis()
 {
+	vector<string> header;
+	vector<vector<string> > examples;
+
+	string data_file_name = "data.txt";
+
 	// 打开文件
 	ifstream input(data_file_name.c_str());
 
@@ -29,13 +24,6 @@ bool read_data(
 	istringstream iss(line);
 	while(iss>>tmp)
 		header.push_back(tmp);
-	// 保证有数据
-	if(header.empty())
-	{
-		input.close();
-		return false;
-	}
-
 	// 读入数据集
 	while(getline(input, line))
 	{
@@ -44,27 +32,12 @@ bool read_data(
 		while(iss>>tmp)
 			v.push_back(tmp);
 		examples.push_back(v);
-		// 保证数据属性个数正确
-		if(examples.back().size() != header.size())
-		{
-			input.close();
-			return false;
-		}
 	}
 
 	input.close();
-	return true;
-}
-int main()
-{
-	vector<string> header;
-	vector<vector<string> > datas;
-
-	string data_file_name = "data.txt";
-	read_data(data_file_name, header, datas);
 
 	naive_bayes nb;
-	nb.set_data(datas, header);
+	nb.set_data(examples, header);
 	nb.run();
 	vector<string> v={
 		"Sunny",
@@ -72,6 +45,59 @@ int main()
 		"High",
 		"Strong"
 	};
-	cout<<nb.classification(v);
+	auto ans = nb.classification(v);
+	cout<<'<';
+	for(auto& s:v) cout<<s<<", ";
+	cout<<ans<<">"<<endl;
+	return true;
+}
+bool iris()
+{
+	vector<string> header{
+		"sepal length",
+		"sepal width",
+		"petal length",
+		"petal width",
+		"class"
+	};
+	vector<vector<string>> examples;
+	string data_file_name = "iris.data";
+	ifstream input(data_file_name.c_str());
+
+	string line, tmp;
+	while(getline(input, line))
+	{
+		istringstream iss(line);
+		vector<string> v;
+		while(iss>>tmp) v.push_back(tmp);
+		examples.push_back(v);
+	}
+	input.close();
+	vector<vector<string>> test; // 测试集
+	for(int i = 40; i < 50; ++i)
+		test.push_back(examples[i]),
+		test.push_back(examples[i + 50]),
+		test.push_back(examples[i + 100]);
+
+	naive_bayes nb;
+	vector<bool> flag{true, true, true, true, false};
+	nb.set_data(examples, header, flag);
+	nb.run();
+	for(auto& data:test)
+	{
+		auto real = data.back();
+		data.pop_back();
+		auto ans = nb.classification(data);
+		cout<<'<';
+		for(auto& j:data) cout<<j<<", ";
+		cout<<real<<">\t the answer is "<<ans<<endl;
+	}
+	return true;
+}
+
+int main()
+{
+//	playTennis();
+	iris();
 	return 0;
 }

@@ -6,10 +6,11 @@
  */
 
 #include "naive_bayes.h"
+#include<cmath>
 
 naive_bayes::naive_bayes()
 {
-	m_estimate = 0; // FIXME
+	m_estimate = 1;
 }
 
 bool naive_bayes::clear()
@@ -18,11 +19,16 @@ bool naive_bayes::clear()
 	attr_to_int.clear();
 	int_to_attr.clear();
 	attrs_size.clear();
+	is_numeric.clear();
+	datas.clear();
+	p_datas.clear();
+	target_to_label.clear();
+	p_target.clear();
 	return true;
 }
 
 /*
- * function: naive_bayes::set_data
+ * function: naive_bayes::set_data 设置数据集，产生辅助数据
  * d: 数据集
  * h: 属性, 需保证最后一列为目标属性，且为离散值
  * b: 属性是离散值(false), 还是数值型(true)
@@ -33,13 +39,14 @@ bool naive_bayes::set_data(vvs& d, vs& h, vb b)
 	bool f = clear();
 	if(!f) return f;
 	
-	datas = d;
-	headers = h;
-	num_attr = (int)headers.size();
-	num_data = (int)d.size();
+	assert(d.size() > 0); // 数据集不能为空
+	datas      = d;
+	headers    = h;
+	num_attr   = (int)headers.size();
+	num_data   = (int)d.size();
 	is_numeric = b;
 	is_numeric.resize(num_attr, false);
-	assert(is_numeric.back() == false); // 目标属性为离散值
+	assert(is_numeric.back() == false); // 目标属性必须为离散值
 	target_attr = headers.back();
 
 	attr_to_int.resize(num_attr);
@@ -51,7 +58,7 @@ bool naive_bayes::set_data(vvs& d, vs& h, vb b)
 		auto& e = d[i];
 		for(int j = 0; j < num_attr; ++j)
 		{
-			if(is_numeric[j]) continue;
+			if(is_numeric[j]) continue; // 数值型数据不需要映射
 			auto it = attr_to_int[j].find(e[j]);
 			if(it == attr_to_int[j].end())
 			{
@@ -92,7 +99,7 @@ bool naive_bayes::run()
 		for(int j = 0; j < num_attr - 1; ++j)
 		{// 对每个非目标属性
 			int k_size = (int)data_k.size();
-			auto& p = p_datas[k][j];
+			auto& p = p_datas[k][j]; // 当前需要计算的结点
 			if(is_numeric[j])
 			{
 				// 计算均值和方差
@@ -134,32 +141,31 @@ bool naive_bayes::run()
 
 /*
  * function: naive_bayes::classification 对数据进行分类
+ * return: 该数据最可能的目标属性值
  *
  */
 std::string naive_bayes::classification(vs& data)
 {
 	assert((int)data.size() == num_attr - 1);
+	// 为了防止溢出，以下对概率值取了对数
 	int max_index = -1;
-	double p_max = 0; // 最大概率
+	double p_max = -1e300; // 最大概率
 	vd p_targ_val; // 每个目标属性值对该数据的概率 P(data | target_attr[i])
 	p_targ_val.resize(num_targ, 0.0);
 	auto f = [&](double x, double u, double d)
 	{// 求正态分布概率密度
-		return std::exp(-(x - u) * (x - u) / (2 * d)) / sqrt(2 * std::acos(-1) * d);
+		return std::exp(-(x - u) * (x - u) / (2 * d)) / sqrt(4 * std::acos(-1) * d);
 	};
 	for(int i = 0; i < num_targ; ++i)
 	{
-		std::cout<<i<<'\t';
 		auto& t = p_targ_val[i];
-		t = p_target[i];
-		std::cout<<t<<' ';
+		t = std::log(p_target[i]); // 取对数
 		for(int j = 0; j < num_attr - 1; ++j)
 		{
 			auto& p = p_datas[i][j];
 			if(is_numeric[j])
 			{
-				t *= f(std::stod(data[j]), p.mean_value, p.variance);
-				std::cout<<t<<' ';
+				t += std::log(f(std::stod(data[j]), p.mean_value, p.variance));
 			}
 			else
 			{
@@ -169,19 +175,17 @@ std::string naive_bayes::classification(vs& data)
 					std::cerr<<"No such attribute value."<<std::endl;
 					exit(1);
 				}
-				t *= p.p_attr[it->second];
-				std::cout<<t<<' ';
+				t += std::log(p.p_attr[it->second]);
 			}
 		}
-		std::cout<<std::endl;
 	}
+	// 找到最大概率值
 	for(int i = 0; i < num_targ; ++i)
 	{
-		std::cout<<p_targ_val[i]<<' ';
+//		std::cout<<p_targ_val[i]<<std::endl;
 		if(p_max < p_targ_val[i])
 			p_max = p_targ_val[i], max_index = i;
 	}
-	std::cout<<max_index<<std::endl;
 	return int_to_attr[num_attr - 1][max_index];
 }
 
