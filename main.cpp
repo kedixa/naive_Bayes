@@ -7,6 +7,7 @@
 #include<cmath>
 #include "naive_bayes.h"
 using namespace std;
+using namespace kedixa;
 
 bool playTennis()
 {

@@ -8,6 +8,8 @@
 #include "naive_bayes.h"
 #include<cmath>
 
+namespace kedixa{
+
 naive_bayes::naive_bayes()
 {
 	m_estimate = 1;
@@ -193,3 +195,5 @@ naive_bayes::~naive_bayes()
 {
 	clear();
 }
+
+} // namespace kedixa

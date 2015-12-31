@@ -15,6 +15,8 @@
 #ifndef NAIVE_BAYES_H_
 #define NAIVE_BAYES_H_
 
+namespace kedixa{
+
 class naive_bayes;
 class _naive_bayes_node
 {
@@ -71,4 +73,5 @@ public:
 	~naive_bayes();
 };
 
+} // namespace kedixa
 #endif // NAIVE_BAYES_H_
